@@ -1,0 +1,83 @@
+# Local monitoring stack for the Iris classifier service.
+#
+# Brings up three containers in a private network:
+#   - iris-service: the FastAPI prediction API (this repo's serving code)
+#   - prometheus:   scrapes /metrics every 5s, stores time-series data
+#   - grafana:      reads from Prometheus, serves the dashboard at :3000
+#
+# Usage from the repo root:
+#     docker compose -f dashboards/monitoring-stack.yml up -d --build
+#     # then in a separate terminal:
+#     python -m src.monitoring.traffic_gen --scenario drift --rate 5
+#
+# Open http://localhost:3000 (admin / admin) for the dashboard.
+# Open http://localhost:9090 for Prometheus query UI.
+# Open http://localhost:8000/docs for the FastAPI Swagger page.
+
+services:
+  iris-service:
+    build:
+      # Build context = repo root so the Dockerfile can find src/, models/.
+      context: ..
+      dockerfile: Dockerfile
+    container_name: iris-service
+    ports:
+      - "8000:8000"
+    environment:
+      DRIFT_RECOMPUTE_INTERVAL_S: "5"
+      DRIFT_WINDOW_SIZE: "500"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health').read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - mlops
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.retention.time=2d"
+      - "--web.enable-lifecycle"
+    depends_on:
+      - iris-service
+    networks:
+      - mlops
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      # Default admin credentials. Fine for local; change for any
+      # network-exposed deployment.
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      # Disable telemetry / signup nag for local-only use.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+    volumes:
+      - ./grafana-provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./grafana-provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana-dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - mlops
+
+networks:
+  mlops:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

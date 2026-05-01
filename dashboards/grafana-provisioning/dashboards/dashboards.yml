@@ -1,0 +1,16 @@
+# Grafana auto-provisioning: tells Grafana to scan the dashboards
+# directory for JSON files and load them on startup. Lets us version
+# dashboards as code in the repo without having to import via the UI.
+
+apiVersion: 1
+
+providers:
+  - name: "iris-dashboards"
+    orgId: 1
+    folder: "Iris MLOps"
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards

@@ -1,0 +1,28 @@
+# Prometheus scrape configuration.
+#
+# Single scrape target: the iris-classifier service. 5s interval is faster
+# than the conventional 15s — chosen so dashboards feel responsive during
+# demos / live grading. For a real production deployment, 15-30s is more
+# typical to keep storage and CPU overhead manageable.
+
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+  external_labels:
+    monitor: "iris-monitor"
+
+scrape_configs:
+  - job_name: "iris-classifier"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets:
+          # 'iris-service' is the docker-compose service hostname.
+          # When running outside Docker, change to localhost:8000.
+          - "iris-service:8000"
+        labels:
+          service: "iris-classifier"
+          env: "local"
+
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]

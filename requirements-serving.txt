@@ -1,0 +1,8 @@
+# Runtime-only deps for the serving container. Smaller than the full
+# requirements.txt so Docker images stay lean.
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+pydantic==2.9.2
+scikit-learn==1.3.2
+numpy==1.26.2
+prometheus-client==0.20.0

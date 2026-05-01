@@ -1,0 +1,16 @@
+# Grafana auto-provisioning: tells Grafana on startup to register
+# Prometheus as a datasource. Without this file, the user has to click
+# through "Add datasource -> Prometheus -> URL=http://prometheus:9090"
+# every time a fresh Grafana container spins up.
+#
+# Saved as default so dashboards reference {{datasource}} = Prometheus.
+
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true

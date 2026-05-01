@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+.env
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project-specific
+# Don't commit Grafana / Prometheus runtime state
+prometheus-data/
+grafana-data/
+# Local logs that are runtime artifacts (the audit-trail for C3 IS committed though)
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
