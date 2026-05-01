@@ -1,0 +1,281 @@
+{
+  "reference_accuracy": 0.9855,
+  "psi_thresholds": {
+    "moderate": 0.1,
+    "significant": 0.25
+  },
+  "windows": {
+    "reference": {
+      "window": "reference",
+      "n_total": 2000,
+      "n_valid_for_inference": 2000,
+      "integrity": {
+        "nan_values": 0,
+        "nan_rows": 0,
+        "extreme_outlier_rows": 0
+      },
+      "feature_drift": {
+        "sepal_length": {
+          "psi": 0.09392284862679365,
+          "ks_stat": 0.0,
+          "ks_pvalue": 1.0,
+          "severity": "stable"
+        },
+        "sepal_width": {
+          "psi": 0.10899747439044907,
+          "ks_stat": 0.0,
+          "ks_pvalue": 1.0,
+          "severity": "moderate"
+        },
+        "petal_length": {
+          "psi": 0.04698783219056063,
+          "ks_stat": 0.0,
+          "ks_pvalue": 1.0,
+          "severity": "stable"
+        },
+        "petal_width": {
+          "psi": 0.21485962161685399,
+          "ks_stat": 0.0,
+          "ks_pvalue": 1.0,
+          "severity": "moderate"
+        },
+        "sepal_l_x_sepal_w": {
+          "psi": 0.08709968506646064,
+          "ks_stat": 0.0,
+          "ks_pvalue": 1.0,
+          "severity": "stable"
+        },
+        "petal_l_x_petal_w": {
+          "psi": 0.18792180245154466,
+          "ks_stat": 0.0,
+          "ks_pvalue": 1.0,
+          "severity": "moderate"
+        }
+      },
+      "output_drift": {
+        "expected_class_pcts": [
+          0.3333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "actual_class_pcts": [
+          0.3365,
+          0.3275,
+          0.336
+        ],
+        "psi": 0.00015417691073106802
+      },
+      "impact": {
+        "accuracy": 0.9855,
+        "mean_confidence": 0.947986119047619,
+        "n_correct": 1971,
+        "n_evaluated": 2000,
+        "accuracy_drop_vs_reference": 0.0
+      }
+    },
+    "production_week1": {
+      "window": "production_week1",
+      "n_total": 2000,
+      "n_valid_for_inference": 2000,
+      "integrity": {
+        "nan_values": 0,
+        "nan_rows": 0,
+        "extreme_outlier_rows": 0
+      },
+      "feature_drift": {
+        "sepal_length": {
+          "psi": 0.04143267400601959,
+          "ks_stat": 0.0275,
+          "ks_pvalue": 0.43609338214006377,
+          "severity": "stable"
+        },
+        "sepal_width": {
+          "psi": 0.09509765561831975,
+          "ks_stat": 0.02,
+          "ks_pvalue": 0.8187536311788122,
+          "severity": "stable"
+        },
+        "petal_length": {
+          "psi": 0.04959477886947767,
+          "ks_stat": 0.0195,
+          "ks_pvalue": 0.8416360266077476,
+          "severity": "stable"
+        },
+        "petal_width": {
+          "psi": 0.2357697250011829,
+          "ks_stat": 0.032,
+          "ks_pvalue": 0.2574754523872385,
+          "severity": "moderate"
+        },
+        "sepal_l_x_sepal_w": {
+          "psi": 0.109488258145239,
+          "ks_stat": 0.028,
+          "ks_pvalue": 0.4132324404768168,
+          "severity": "moderate"
+        },
+        "petal_l_x_petal_w": {
+          "psi": 0.1618210267567383,
+          "ks_stat": 0.032,
+          "ks_pvalue": 0.2574754523872385,
+          "severity": "moderate"
+        }
+      },
+      "output_drift": {
+        "expected_class_pcts": [
+          0.3333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "actual_class_pcts": [
+          0.344,
+          0.3265,
+          0.3295
+        ],
+        "psi": 0.0005218636723071076
+      },
+      "impact": {
+        "accuracy": 0.982,
+        "mean_confidence": 0.9473752321428571,
+        "n_correct": 1964,
+        "n_evaluated": 2000,
+        "accuracy_drop_vs_reference": 0.0035000000000000586
+      }
+    },
+    "production_week2": {
+      "window": "production_week2",
+      "n_total": 2000,
+      "n_valid_for_inference": 2000,
+      "integrity": {
+        "nan_values": 0,
+        "nan_rows": 0,
+        "extreme_outlier_rows": 0
+      },
+      "feature_drift": {
+        "sepal_length": {
+          "psi": 0.09428113089867778,
+          "ks_stat": 0.031,
+          "ks_pvalue": 0.291764846534962,
+          "severity": "stable"
+        },
+        "sepal_width": {
+          "psi": 0.1249081486104345,
+          "ks_stat": 0.0485,
+          "ks_pvalue": 0.01809676062737047,
+          "severity": "moderate"
+        },
+        "petal_length": {
+          "psi": 0.812869045663638,
+          "ks_stat": 0.2335,
+          "ks_pvalue": 3.279213740841629e-48,
+          "severity": "significant"
+        },
+        "petal_width": {
+          "psi": 0.2769154851096557,
+          "ks_stat": 0.184,
+          "ks_pvalue": 5.4117466675090135e-30,
+          "severity": "significant"
+        },
+        "sepal_l_x_sepal_w": {
+          "psi": 0.07215417379906573,
+          "ks_stat": 0.043,
+          "ks_pvalue": 0.04953464037142928,
+          "severity": "stable"
+        },
+        "petal_l_x_petal_w": {
+          "psi": 0.7450098936749191,
+          "ks_stat": 0.241,
+          "ks_pvalue": 2.3197623533969894e-51,
+          "severity": "significant"
+        }
+      },
+      "output_drift": {
+        "expected_class_pcts": [
+          0.3333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "actual_class_pcts": [
+          0.3465,
+          0.113,
+          0.5405
+        ],
+        "psi": 0.3389911467039293
+      },
+      "impact": {
+        "accuracy": 0.7935,
+        "mean_confidence": 0.9150235317460317,
+        "n_correct": 1587,
+        "n_evaluated": 2000,
+        "accuracy_drop_vs_reference": 0.19200000000000006
+      }
+    },
+    "production_week3": {
+      "window": "production_week3",
+      "n_total": 2000,
+      "n_valid_for_inference": 1951,
+      "integrity": {
+        "nan_values": 49,
+        "nan_rows": 49,
+        "extreme_outlier_rows": 145
+      },
+      "feature_drift": {
+        "sepal_length": {
+          "psi": 0.08748165580439539,
+          "ks_stat": 0.035681957970271655,
+          "ks_pvalue": 0.15636193124945263,
+          "severity": "stable"
+        },
+        "sepal_width": {
+          "psi": 0.11356677145941872,
+          "ks_stat": 0.022633777549974372,
+          "ks_pvalue": 0.6799824468227982,
+          "severity": "moderate"
+        },
+        "petal_length": {
+          "psi": 4.173484071904603,
+          "ks_stat": 0.4975520246027678,
+          "ks_pvalue": 1.0539013365557469e-222,
+          "severity": "significant"
+        },
+        "petal_width": {
+          "psi": 0.8825931824563267,
+          "ks_stat": 0.33408149666837517,
+          "ks_pvalue": 3.808766504638515e-98,
+          "severity": "significant"
+        },
+        "sepal_l_x_sepal_w": {
+          "psi": 0.08765109467599508,
+          "ks_stat": 0.047644284982060484,
+          "ks_pvalue": 0.021584072286687832,
+          "severity": "stable"
+        },
+        "petal_l_x_petal_w": {
+          "psi": 2.908056083030311,
+          "ks_stat": 0.43006458226550487,
+          "ks_pvalue": 1.6379115674007366e-164,
+          "severity": "significant"
+        }
+      },
+      "output_drift": {
+        "expected_class_pcts": [
+          0.3333333333333333,
+          0.3333333333333333,
+          0.3333333333333333
+        ],
+        "actual_class_pcts": [
+          0.32444900051255765,
+          0.005638134290107637,
+          0.6699128651973347
+        ],
+        "psi": 1.5720360739212278
+      },
+      "impact": {
+        "accuracy": 0.6627370579190159,
+        "mean_confidence": 0.9419270012122396,
+        "n_correct": 1293,
+        "n_evaluated": 1951,
+        "accuracy_drop_vs_reference": 0.3227629420809841
+      }
+    }
+  }
+}
