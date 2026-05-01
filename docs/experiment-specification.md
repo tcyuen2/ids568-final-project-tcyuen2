@@ -1,11 +1,11 @@
 # Experiment Specification — Component 2
 
 A/B test design for promoting a candidate Iris classifier model into the
-production serving slot established in Component 1.
+production serving slot from Component 1.
 
-## 1. Background and motivation
+## 1. Background
 
-Two RandomForest configurations from Milestone 3 had **identical offline
+Two RandomForest configs from Milestone 3 had **identical offline
 accuracy on the M3 test set** but different hyperparameters:
 
 | Variant | M3 run ID | Hyperparameters | M3 offline accuracy |
@@ -13,186 +13,125 @@ accuracy on the M3 test set** but different hyperparameters:
 | A — `high_min_split` (control, currently serving) | `6e01be84...` | n=100, depth=10, min_split=5 | 0.967 |
 | B — `baseline_run` (challenger) | `0ab6a6fa...` | n=50, depth=5, min_split=2 | 0.933 |
 
-The 3.4-point offline accuracy gap was measured on a single 30-sample
-stratified test split. Test sets that small have wide confidence intervals,
-so the gap may not replicate online. Variant B is also smaller (50 trees
-of depth 5 vs. 100 trees of depth 10), which makes it cheaper to serve —
-~50% fewer trees to traverse per prediction. **If the online accuracy gap
-is small or absent, the operational savings make B a credible
-deployment candidate**, not a reject.
-
-This experiment exists to settle that question with a sample size large
-enough to make the answer real.
+The 3.4-point gap was measured on a 30-sample test set, which has wide
+CIs — that gap might not replicate online. B is also smaller (50 trees
+vs. 100), so it's cheaper to serve. **If the live accuracy gap is small
+or absent, B becomes a credible deployment candidate.** This experiment
+exists to settle that question with a sample size that makes the answer
+real.
 
 ## 2. Hypothesis
 
-Framed as a **non-inferiority test from the operator's perspective** — we
-already know A is the safer choice; the question is whether B is good
-enough to justify the operational savings.
 
-- **Null (H₀):** the live accuracy of variant B is at least 3 percentage
-  points worse than variant A. Formally: `acc_A − acc_B ≥ 0.03`.
-- **Alternative (H₁):** the live accuracy of variant B is within 3
-  percentage points of variant A. Formally: `acc_A − acc_B < 0.03`.
-- **Decision rule:** reject H₀ (i.e., promote B as a deployment option) if
-  the upper bound of a 95% one-sided confidence interval on `acc_A − acc_B`
-  falls below 0.03. Otherwise either keep A or extend the test.
+- **Null:** B's live accuracy is at least 3 percentage points wors
+- **Alternative:** B is within 3 percentage points of A.
+- **Decision:** reject H₀ (i.e., promote B) if the upper bound of a 95% one-sided CI on `acc_A − acc_B` is below 0.03. Otherwise keep A or extend the test.
 
-The 3-percentage-point non-inferiority margin is chosen because:
-1. It corresponds to roughly one misclassified prediction in 33 — a
-   tolerable level for a non-safety-critical system.
-2. It is smaller than the 3.4-point offline gap, so the test will have
-   the power to determine whether that gap is real or measurement noise.
+The 3-point margin works out to roughly 1 misclassified prediction in
+33 — tolerable here, smaller than the 3.4-point offline gap so the test
+has the power to determine whether the gap is real or noise.
 
-## 3. Success and guardrail metrics
+## 3. Metrics
 
-**Primary success metric** (decides ship/no-ship):
+**Primary metric**
 
-- **Accuracy on labeled live traffic.** Computed per-variant as
-  `correct_predictions / total_predictions`. Live labels are available
-  in this synthetic system because traffic is generated from a known
-  per-class distribution; in a real deployment, ground truth would
-  arrive via a delayed feedback channel (e.g., user corrections or a
-  human review queue).
+- **Accuracy on labeled live traffic.** `correct / total` per variant.
+  Live labels are available because traffic comes from a known
+  per-class distribution; in real production, labels would arrive
+  through delayed feedback (user corrections or human review).
 
 **Guardrail metrics** (any one fires → halt the experiment, do not ship B):
 
 | Guardrail | Threshold | Source |
 |---|---|---|
-| Variant B p99 latency | > 50 ms (5× variant A p99) | Component 1 latency histogram |
-| Variant B error rate | > 1% of B's traffic | Component 1 `iris_requests_total` 5xx |
-| Variant B mean prediction confidence | drops by >5 percentage points vs. A | Component 1 `iris_prediction_confidence` |
-| Variant B feature-drift PSI | crosses 0.25 on any feature *only on B's traffic* | Component 1 `iris_feature_drift_psi` |
+| B p99 latency | > 50 ms (5× A's) | C1 latency histogram |
+| B error rate | > 1% of B's traffic | C1 `iris_requests_total` 5xx |
+| B mean prediction confidence | drops > 5 pp vs. A | C1 `iris_prediction_confidence` |
+| B feature-drift PSI | crosses 0.25 on any feature on B's traffic only | C1 `iris_feature_drift_psi` |
 
-The confidence-drop guardrail is included because confidence drops
-typically *precede* accuracy drops by hours or days in real systems —
-catching it early lets us halt before user-visible damage.
+The confidence-drop guardrail is here because confidence drops usually
+*precede* accuracy drops by hours or days in real systems — catching it
+early lets us halt before user-visible damage.
 
-These guardrails are evaluated alongside the primary metric by reading
-from the Component 1 Prometheus instance, so the same telemetry that
-serves operational monitoring also serves experiment safety.
+## 4. Randomization
 
-## 4. Randomization method
-
-**Per-request hash-based bucketing.** Each incoming request is assigned
-to A or B by:
+**Per-request hash-based bucketing.** Each request gets bucketed by:
 
 ```
-bucket = "B" if (hash(request_id) % 100) < 50 else "A"
+bucket = "B" if (md5(request_id) % 100) < 50 else "A"
 ```
 
-where `request_id` is a stable per-request UUID generated at the API
-gateway. This gives a 50/50 split with the following guarantees:
+Where `request_id` is a UUID generated at the API gateway. This gives
+50/50 split with three properties:
 
-- **Deterministic:** the same request always hits the same variant —
-  important for retries and idempotency.
-- **Independent:** consecutive requests are assigned independently,
-  so user-level correlations don't bias either arm.
-- **No drift over time:** the split ratio doesn't shift unless we
-  deliberately change the threshold.
+- **Deterministic:** same request → same variant (matters for retries)
+- **Independent:** consecutive requests assigned independently
+- **Stable over time:** ratio doesn't shift unless we change the threshold
 
-For the simulation, the same logic is applied per-sample using a
-seeded numpy RNG — see `src/ab_test/simulation.py`.
+50/50 is chosen rather than the more common 90/10 because B is an
+already-trained model with known offline performance, not an unproven
+new model. The downside risk is bounded.
 
-A 50/50 split is chosen rather than the more common 90/10 because the
-challenger here is an *older* model with known offline performance, not
-an unproven new model. We are willing to expose half of traffic to it
-because the downside risk is bounded.
+For the simulation, the same logic is applied per-sample with a seeded
+numpy RNG — see `src/ab_test/simulation.py`.
 
 ## 5. Sample size and duration
 
-**Power calculation (two-proportion z-test, α = 0.05 two-sided, power = 0.80):**
+**Power calculation** (two-proportion z-test, α=0.05 two-sided, power=0.80):
 
-| Minimum detectable effect (MDE) | Samples per arm | Total | Time at 5 req/s |
+| MDE (absolute drop) | n per arm | Total | Time at 5 req/s |
 |---|---|---|---|
-| 0.5% absolute drop | 21,474 | 42,948 | 2.4 hours |
-| 1.0% absolute drop | 5,715 | 11,430 | 38.1 minutes |
-| 2.0% absolute drop | 1,594 | 3,188 | 10.6 minutes |
-| 3.0% absolute drop | 778 | 1,556 | 5.2 minutes |
+| 0.5% | 21,474 | 42,948 | 2.4 hours |
+| **1.0% (chosen)** | **5,715** | **11,430** | **38.1 minutes** |
+| 2.0% | 1,594 | 3,188 | 10.6 minutes |
+| 3.0% | 778 | 1,556 | 5.2 minutes |
 
-**Chosen MDE: 1.0%.** Justification:
+**Why 1.0%:** smaller than the 3% non-inferiority margin (so the test
+can reliably distinguish "within margin" from "at margin"), but large
+enough to be practical to run.
 
-- Smaller than the 3% non-inferiority margin (so the test can reliably
-  distinguish "within margin" from "at margin").
-- Larger than what would require an impractically long run (0.5% MDE
-  needs 2.4 hours of synthetic traffic at 5 req/s, which produces
-  diminishing returns for a teaching system).
-- Large enough that real production traffic at typical rates would
-  reach this sample size in a few hours rather than days.
-
-**Effect-size derivation (Cohen's h, since we're comparing two proportions):**
+**Effect-size derivation (Cohen's h):**
 
 ```
 p1 = 0.967  (control accuracy from M3)
-p2 = p1 - 0.010 = 0.957  (control − MDE)
+p2 = 0.957  (control − MDE)
 h  = 2 * (arcsin(sqrt(p1)) - arcsin(sqrt(p2))) ≈ 0.0524
-n_per_arm = ((z_{α/2} + z_β) / h)^2 ≈ 5,715
+n_per_arm ≈ 5,715
 ```
 
 Computed via `statsmodels.stats.power.NormalIndPower.solve_power`.
 
-**Required sample size:** **5,715 per arm = 11,430 total.**
+**Required sample:** **5,715 per arm = 11,430 total.**
+**Duration:** 38 minutes at 5 req/s.
 
-**Duration:** at 5 req/s (the rate used in the simulation), **38 minutes
-of continuous traffic**. With 50/50 splitting this means each variant
-sees ~2.5 req/s, so each variant accumulates 5,715 samples over the same
-38 minutes.
+**Stopping rules:**
 
-**Stopping rules:** the experiment stops at *whichever comes first*:
+1. Stop when the per-arm sample size (5,715) is reached, **or**
+2. Stop early if any guardrail crosses its threshold for two consecutive
+   5-min windows.
 
-1. The primary-metric sample size (5,715/arm) is reached.
-2. Any guardrail metric crosses its threshold for two consecutive 5-minute
-   windows.
-
-Sequential testing is **not** used (no peeking adjustments) because the
-simulation runs to a fixed sample size in batch. In a real online
-deployment, sequential testing with appropriate alpha-spending would be
-required.
+Sequential testing isn't used (no peeking adjustments) because the
+simulation runs to a fixed sample size in batch. A real online
+deployment would need sequential testing with alpha-spending.
 
 ## 6. Multiple comparisons
 
-This experiment tests **one primary metric** (accuracy) plus a small
-number of fixed guardrails. We are not running multiple primary metrics
-simultaneously, so no Bonferroni or Benjamini-Hochberg correction is
-applied. If we extended the experiment to test multiple primary metrics
-in parallel (e.g., accuracy *and* macro-F1), we would adjust alpha to
-0.025 to maintain family-wise error rate at 0.05.
+One primary metric (accuracy) plus a small number of fixed guardrails.
+
 
 ## 7. Pre-registered analysis plan
 
-To prevent post-hoc analysis fishing, the analysis is pre-specified
-*before* simulation results are observed:
+Pre-specified *before* simulation runs to prevent post-hoc fishing:
 
-1. **Data:** all requests assigned to A or B, with predicted label and
-   ground-truth label, restricted to requests within the first 5,715
-   per-arm assignments.
-2. **Test:** two-proportion z-test on accuracy (correct/total) for A
-   vs. B, two-sided.
-3. **Confidence interval:** 95% Wald CI on the difference `acc_A − acc_B`.
+1. **Data:** all requests assigned to A or B with predicted and
+   ground-truth labels, restricted to the first 5,715 per-arm.
+2. **Test:** two-proportion z-test on accuracy, two-sided.
+3. **CI:** 95% Wald CI on `acc_A − acc_B`.
 4. **Decision:**
-   - Ship B if the upper bound of the CI on `acc_A − acc_B` is
-     below 0.03 (i.e., we have evidence B is non-inferior to A by the
-     3% margin).
-   - Otherwise, do not ship; either keep A or run more data depending
-     on the CI width.
-5. **Guardrails:** report each guardrail metric separately; any single
-   guardrail breach overrides the primary-metric decision.
+   - Ship B if upper bound of CI on `acc_A − acc_B` < 0.03
+   - Otherwise: keep A or run more data depending on CI width
+5. **Guardrails:** report each separately; any single breach overrides
+   the primary-metric decision.
 
 Implementation: `src/ab_test/analyze.py`.
 
-## 8. Reproducibility
-
-- Numpy RNG seeded at 42 throughout the simulation.
-- Both model artifacts bundled in `models/variants/` (lineage to M3
-  runs `6e01be84...` and `0ab6a6fa...` documented in the model card).
-- Single command to reproduce: `python -m src.ab_test.simulation && python -m src.ab_test.analyze`.
-
----
-
-**Builds on Milestone 3:** the offline experiment runs in M3's
-`experiment_results.json` informally compared 5 hyperparameter configs.
-This component formalizes that comparison into a statistically rigorous
-A/B test for two of those configs. The same M3 quality gates from
-`model_validation.py` (accuracy ≥ 0.90, F1 ≥ 0.85, AUC ≥ 0.90) appear
-here as guardrail-style sanity checks before any candidate could be
-declared a winner.
