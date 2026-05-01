@@ -1,0 +1,233 @@
+{
+  "schema_version": "1.0",
+  "service": "iris-classifier",
+  "owner": "tcyuen2",
+  "description": "Audit trail of model lifecycle events for the Iris classifier service. Each entry is append-only and records model version changes, approvals, and significant monitoring events.",
+  "events": [
+    {
+      "event_id": "AT-001",
+      "timestamp": "2026-04-15T00:00:00Z",
+      "event_type": "training_run_completed",
+      "actor": "airflow:train_pipeline",
+      "milestone": "M3",
+      "details": {
+        "mlflow_run_id": "0ab6a6fa80f949d5b917115218e126c4",
+        "run_name": "baseline_run",
+        "hyperparameters": {
+          "n_estimators": 50,
+          "max_depth": 5,
+          "min_samples_split": 2,
+          "learning_rate": 0.01
+        },
+        "offline_metrics": {
+          "accuracy": 0.9333333333333333,
+          "f1_score": 0.9333333333333333,
+          "precision": 0.9333333333333333,
+          "recall": 0.9333333333333333,
+          "auc": 0.9933333333333333
+        },
+        "training_data_hash_sha256": "see_M3_lineage_report.md"
+      },
+      "evidence": "ids568-milestone3-tcyuen2/experiment_results.json"
+    },
+    {
+      "event_id": "AT-002",
+      "timestamp": "2026-04-15T00:00:00Z",
+      "event_type": "training_run_completed",
+      "actor": "airflow:train_pipeline",
+      "milestone": "M3",
+      "details": {
+        "mlflow_run_id": "6e01be84da0e47d68b1fc5caa9749e40",
+        "run_name": "high_min_split",
+        "hyperparameters": {
+          "n_estimators": 100,
+          "max_depth": 10,
+          "min_samples_split": 5,
+          "learning_rate": 0.01
+        },
+        "offline_metrics": {
+          "accuracy": 0.9666666666666667,
+          "f1_score": 0.9665831244778613,
+          "precision": 0.9696969696969696,
+          "recall": 0.9666666666666667,
+          "auc": 0.9933333333333333
+        }
+      },
+      "evidence": "ids568-milestone3-tcyuen2/experiment_results.json"
+    },
+    {
+      "event_id": "AT-003",
+      "timestamp": "2026-04-15T00:05:00Z",
+      "event_type": "quality_gate_passed",
+      "actor": "airflow:validate_model_quality",
+      "milestone": "M3",
+      "details": {
+        "mlflow_run_id": "6e01be84da0e47d68b1fc5caa9749e40",
+        "thresholds": {
+          "min_accuracy": 0.90,
+          "min_f1": 0.85,
+          "min_auc": 0.90
+        },
+        "result": "PASSED",
+        "ci_workflow": "ids568-milestone3-tcyuen2/model_validation.py"
+      }
+    },
+    {
+      "event_id": "AT-004",
+      "timestamp": "2026-04-15T00:10:00Z",
+      "event_type": "model_promoted_to_production",
+      "actor": "tcyuen2",
+      "milestone": "M3 → Final Project C1",
+      "details": {
+        "from": "none (initial deployment)",
+        "to": {
+          "variant": "high_min_split",
+          "mlflow_run_id": "6e01be84da0e47d68b1fc5caa9749e40"
+        },
+        "approval_method": "manual (course context)",
+        "rationale": "Highest offline accuracy (0.967) of the 5 M3 candidates; meets all M3 quality gates."
+      },
+      "evidence": "ids568-milestone3-tcyuen2/latest_metrics.json"
+    },
+    {
+      "event_id": "AT-005",
+      "timestamp": "2026-04-25T00:00:00Z",
+      "event_type": "monitoring_stack_deployed",
+      "actor": "tcyuen2",
+      "milestone": "Final Project C1",
+      "details": {
+        "stack_components": [
+          "FastAPI 0.115.0 (serving)",
+          "Prometheus 2.54.1 (metric collection, 5s scrape interval)",
+          "Grafana 11.2.0 (dashboard)"
+        ],
+        "metrics_instrumented": [
+          "iris_requests_total",
+          "iris_request_duration_seconds",
+          "iris_inference_duration_seconds",
+          "iris_requests_in_flight",
+          "iris_input_anomalies_total",
+          "iris_feature_value_mean",
+          "iris_feature_value_std",
+          "iris_predictions_total",
+          "iris_prediction_confidence",
+          "iris_feature_drift_psi",
+          "iris_prediction_drift_psi",
+          "iris_model_info"
+        ],
+        "active_model_at_deployment": {
+          "variant": "high_min_split",
+          "mlflow_run_id": "6e01be84da0e47d68b1fc5caa9749e40"
+        },
+        "dashboard_panels": 6,
+        "dashboard_artifact": "dashboards/grafana-dashboards/iris-mlops-c1.json"
+      },
+      "evidence": "docs/dashboard-interpretation.md"
+    },
+    {
+      "event_id": "AT-006",
+      "timestamp": "2026-04-25T01:30:00Z",
+      "event_type": "monitoring_incident_resolved",
+      "actor": "tcyuen2",
+      "milestone": "Final Project C1",
+      "details": {
+        "incident_summary": "Input integrity counter `iris_input_anomalies_total` was not registering NaN events because the traffic generator's JSON encoder rejected NaN values before transmission.",
+        "detection": "Prometheus query `iris_input_anomalies_total{anomaly_type='nan'}` returned empty during dashboard build of Panel 5.",
+        "root_cause": "`requests.post(json=payload)` uses strict JSON which raises ValueError on NaN floats.",
+        "resolution": "Switched traffic_gen.py to `json.dumps(payload, allow_nan=True)` and explicit Content-Type header, restoring NaN test coverage.",
+        "files_changed": ["src/monitoring/traffic_gen.py"],
+        "follow_up": "Documented in dashboard-interpretation.md as a real-world example of upstream serialization issues that input integrity monitoring is designed to catch."
+      }
+    },
+    {
+      "event_id": "AT-007",
+      "timestamp": "2026-04-29T00:00:00Z",
+      "event_type": "ab_test_started",
+      "actor": "tcyuen2",
+      "milestone": "Final Project C2",
+      "details": {
+        "experiment_id": "iris-ab-001",
+        "control_variant": {
+          "name": "high_min_split",
+          "mlflow_run_id": "6e01be84da0e47d68b1fc5caa9749e40"
+        },
+        "challenger_variant": {
+          "name": "baseline_run",
+          "mlflow_run_id": "0ab6a6fa80f949d5b917115218e126c4"
+        },
+        "primary_metric": "accuracy",
+        "non_inferiority_margin": 0.03,
+        "alpha": 0.05,
+        "target_power": 0.80,
+        "sample_size_per_arm": 5715,
+        "randomization": "hash-based 50/50 (md5 of request_id mod 100)"
+      },
+      "evidence": "docs/experiment-specification.md"
+    },
+    {
+      "event_id": "AT-008",
+      "timestamp": "2026-04-29T00:30:00Z",
+      "event_type": "ab_test_completed",
+      "actor": "src.ab_test.analyze",
+      "milestone": "Final Project C2",
+      "details": {
+        "experiment_id": "iris-ab-001",
+        "n_total": 11430,
+        "n_a": 5750,
+        "n_b": 5680,
+        "accuracy_a": 0.9769,
+        "accuracy_b": 0.9812,
+        "difference_a_minus_b": -0.0043,
+        "ci_95_low": -0.0095,
+        "ci_95_high": 0.0010,
+        "p_value_two_sided": 0.110,
+        "decision": "SHIP_B",
+        "rationale": "Upper bound of 95% CI on (acc_A − acc_B) is +0.0010, below the 3% non-inferiority margin. Variant B is non-inferior to A on the primary metric and is operationally cheaper to serve."
+      },
+      "evidence": "src/ab_test/analysis.json"
+    },
+    {
+      "event_id": "AT-009",
+      "timestamp": "2026-04-29T00:35:00Z",
+      "event_type": "model_promoted_to_production",
+      "actor": "tcyuen2",
+      "milestone": "Final Project C2 → C3",
+      "details": {
+        "from": {
+          "variant": "high_min_split",
+          "mlflow_run_id": "6e01be84da0e47d68b1fc5caa9749e40"
+        },
+        "to": {
+          "variant": "baseline_run",
+          "mlflow_run_id": "0ab6a6fa80f949d5b917115218e126c4"
+        },
+        "trigger": "ab_test_decision_SHIP_B (event AT-008)",
+        "approval_method": "pre-registered decision rule from experiment specification",
+        "rationale": "Statistical non-inferiority confirmed; smaller model (50 trees vs 100) delivers operational savings.",
+        "rollback_plan": "Revert models/model.pkl to the high_min_split artifact in models/variants/; restart iris-service container."
+      },
+      "evidence": "docs/recommendation-memo.md"
+    },
+    {
+      "event_id": "AT-010",
+      "timestamp": "2026-04-29T01:00:00Z",
+      "event_type": "model_card_updated",
+      "actor": "tcyuen2",
+      "milestone": "Final Project C3",
+      "details": {
+        "trigger": "AT-009 (model promotion)",
+        "sections_updated": [
+          "Model details (active variant, M3 run ID)",
+          "Quantitative analyses (added C2 simulation metrics)",
+          "Caveats and recommendations (note 2 added — smaller forest variance)"
+        ]
+      },
+      "evidence": "docs/model-card.md"
+    }
+  ],
+  "review_policy": {
+    "append_only": true,
+    "scheme": "Each event has a unique AT-NNN identifier. Events are added in chronological order; they are never deleted or modified after creation.",
+    "verification": "The active model recorded in the most recent `model_promoted_to_production` event must match the `iris_model_info` Prometheus gauge labels. A mismatch is a P1 incident."
+  }
+}
