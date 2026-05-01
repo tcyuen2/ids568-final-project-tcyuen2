@@ -1,0 +1,20 @@
+{
+  "decision": "SHIP_B",
+  "rationale": "Upper bound of 95% CI on (acc_A \u2212 acc_B) is +0.0010, which is below the non-inferiority margin of +0.0300. This is sufficient evidence that variant B is non-inferior to variant A by the pre-registered margin.",
+  "test": {
+    "n_a": 5750,
+    "correct_a": 5617,
+    "p_a": 0.9768695652173913,
+    "n_b": 5680,
+    "correct_b": 5573,
+    "p_b": 0.981161971830986,
+    "diff": -0.004292406613594646,
+    "se_diff": 0.0026802452845889496,
+    "z": -1.600336816941199,
+    "p_value_two_sided": 0.10952388349798636,
+    "ci_low_95": -0.009545590841122295,
+    "ci_high_95": 0.0009607776139330029
+  },
+  "alpha": 0.05,
+  "non_inferiority_margin": 0.03
+}
